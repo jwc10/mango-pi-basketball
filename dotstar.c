@@ -1,6 +1,6 @@
 /* File: dotstar.c
  * -------------
- * Author: Alexander Jeon
+ * Author: John Carlson
  * The dotstar implementation uses spi pins to drive rgb led strips (DotStar APA102). A data
  * sequence is sent to the strip to control the leds. 
  * 

@@ -1,6 +1,6 @@
 /* File: myprogram.c
  * -------------
- * Authors: Alexander Jeon and John Carlson
+ * Author: John Carlson
  * Main program for the basketball game. Allows normal basketball arcade mode and a mode where
  * the hoops switch which team they score for every 5 seconds. The mode is changed by clicking the button,
  * then selected by holding the button.

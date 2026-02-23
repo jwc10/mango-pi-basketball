@@ -1,6 +1,6 @@
 /* File: button.c
  * -------------
- * Author: Alexander Jeon
+ * Author: John Carlson
  * The button implementation takes in one gpio pin for a 4 prong button and then
  * cycles through a user input number of modes. The button cycles through modes with one press,
  * and a long press selects the currently displayed mode.

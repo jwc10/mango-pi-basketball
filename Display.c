@@ -1,6 +1,6 @@
 /* File Display.c
  * -------------
- * Author: Alexander Jeon
+ * Author: John Carlson
  * The display file allows for the communication with tm1637 4 digit displays.
  * Operations like setting brightness values, displaying numbers, and implementing
  * a countdown are implemented in this file. The code is based on the TM1637

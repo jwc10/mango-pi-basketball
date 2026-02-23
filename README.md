@@ -1,12 +1,14 @@
 # Mango Pi Basketball Arcade
 
-**Bare-metal arcade game on RISC-V** — A "pop-a-shot" style basketball game running entirely on a [Mango Pi](https://mangopi.org/) board with no OS: custom drivers, GPIO interrupts, dual SPI (hardware + bit-banged), and real-time scoring.
+**Bare-metal arcade game on RISC-V** — A "pop-a-shot" style basketball game running entirely on a [Mango Pi](https://mangopi.org/) board with no OS: custom drivers, GPIO interrupts, dual SPI (hardware + bit-banged), three TM1637 displays (two scoreboards + live countdown timer), and real-time scoring.
+
+**Author:** John Carlson
 
 ---
 
 ## Overview
 
-This project is a two-hoop basketball arcade game built for the **Stanford CS107e** (Computer Systems from the Ground Up) ecosystem. The game runs **bare-metal in C on a RISC-V Mango Pi**, using only GPIO, timers, and custom drivers—no Linux, no Arduino runtime. Two IR beam-break sensors detect shots and score 1 or 2 points based on how long the beam is blocked; dual 7-segment scoreboards, dual DotStar LED strips, and a piezo buzzer provide feedback. A second game mode periodically swaps which hoop scores for which team, with LED colors and scoreboards updating in real time via timer interrupts.
+This project is a two-hoop basketball arcade game built for the **Stanford CS107e** (Computer Systems from the Ground Up) ecosystem. The game runs **bare-metal in C on a RISC-V Mango Pi**, using only GPIO, timers, and custom drivers—no Linux, no Arduino runtime. Two IR beam-break sensors detect shots and score 1 or 2 points based on how long the beam is blocked. **Three** TM1637 4-digit displays (two team scoreboards plus a dedicated **countdown timer** in MM:SS), dual DotStar LED strips, and a piezo buzzer provide feedback. Game length is 1 minute 30 seconds; the countdown runs in real time during play. A second game mode periodically swaps which hoop scores for which team, with LED colors and scoreboards updating in real time via timer interrupts.
 
 ---
 
@@ -32,9 +34,9 @@ This project is a two-hoop basketball arcade game built for the **Stanford CS107
   - One strip on **hardware SPI**, one on **software (bit-banged) SPI** on separate GPIO pins.  
   - Team colors (red/blue) per hoop; victory/tie animations (flashing red, blue, or purple).
 
-- **Dual TM1637 4-digit scoreboards**  
-  - One per team; scores update immediately on basket.  
-  - Separate **countdown display** with MM:SS countdown for game time.
+- **Three TM1637 4-digit 7-segment displays**  
+  - **Two scoreboards** — one per team; scores update immediately on basket.  
+  - **One countdown timer** — dedicated third display (MM:SS with colon). Used for: (1) mode selection (shows 1 or 2 before the game), (2) initial game time (e.g. 1:30), (3) **real-time countdown** during the game (1:30 → 0:00). Game length is **1 minute 30 seconds**.
 
 - **Sound**  
   - Piezo buzzer driven from GPIO: 1-point and 2-point jingles, game-start fanfare, and win melody.  
@@ -42,7 +44,7 @@ This project is a two-hoop basketball arcade game built for the **Stanford CS107
 
 - **Mode selection**  
   - Single button: short press cycles modes (1 or 2), long press (~1.5 s) selects and starts the game.  
-  - Selected mode shown on the countdown display before game start.
+  - Selected mode shown on the countdown display; then the same display shows the running game clock.
 
 ---
 
@@ -54,7 +56,7 @@ This project is a two-hoop basketball arcade game built for the **Stanford CS107
 | **Language** | C (freestanding, no standard library runtime) |
 | **Course / ecosystem** | Stanford CS107e (bare-metal, `libmango`) |
 | **Communication** | Hardware SPI (SoC SPI1), **bit-banged SPI** on GPIO |
-| **Peripherals** | GPIO (IR sensors, buzzer, button), TM1637 (2-wire protocol), APA102/DotStar LED strips |
+| **Peripherals** | GPIO (IR sensors, buzzer, button), **3× TM1637** (2 scoreboards + 1 countdown timer, 2-wire protocol), APA102/DotStar LED strips |
 | **Concurrency** | GPIO edge-triggered interrupts (scoring), high-resolution timer interrupt (mode switching) |
 | **Build** | `riscv64-unknown-elf-gcc`, custom Makefile, `memmap.ld` linker script |
 
@@ -68,7 +70,7 @@ This project is a two-hoop basketball arcade game built for the **Stanford CS107
 
 - **Interrupt-driven game logic** — Scoring is handled in GPIO interrupt handlers (beam break); the 5-second team swap is driven by a high-resolution timer interrupt. Shows handling of concurrency and timing in an embedded context.
 
-- **TM1637 driver port** — Display logic adapted from an existing Arduino TM1637 library to the CS107e environment: same protocol (start/stop, byte transfer, ACK), but using only `gpio_read`/`gpio_write` and `timer_delay_us` (no Arduino or I2C HAL). Custom helpers for score display and countdown.
+- **TM1637 driver port** — Display logic adapted from an existing Arduino TM1637 library to the CS107e environment: same protocol (start/stop, byte transfer, ACK), but using only `gpio_read`/`gpio_write` and `timer_delay_us` (no Arduino or I2C HAL). Custom helpers for score display and a **real-time countdown**: MM:SS with colon (clock mode), driven by `timer_get_ticks()` in a tight loop so the countdown updates live during the game.
 
 - **Software sound synthesis** — No hardware PWM or audio codec; “notes” are implemented by toggling a GPIO at the right frequency and for the right duration (with BPM and note lengths), producing recognizable melodies on a piezo.
 
@@ -80,7 +82,7 @@ This project is a two-hoop basketball arcade game built for the **Stanford CS107
 
 ```
 ├── myprogram.c     # Game loop, interrupt handlers, mode selection, win/tie logic
-├── Display.c/h     # TM1637 driver (init, segments, numbers, countdown)
+├── Display.c/h     # TM1637 driver (init, segments, numbers, countdown timer)
 ├── sound.c/h       # Note/rest playback via GPIO timing
 ├── dotstar.c/h     # APA102 strip control (HW SPI + software SPI path)
 ├── spi.c/h         # Hardware SPI init and transfer (SoC SPI1)
@@ -88,6 +90,7 @@ This project is a two-hoop basketball arcade game built for the **Stanford CS107
 ├── ccu.c/h         # Clock configuration (CS107e D1 CCU)
 ├── mymodule.c/h    # Minimal helper (e.g. say_hello)
 ├── Makefile        # Builds myprogram.bin for Mango Pi
+├── LICENSE         # MIT
 └── README.md
 ```
 
@@ -96,13 +99,13 @@ This project is a two-hoop basketball arcade game built for the **Stanford CS107
 ## Hardware Used
 
 - **Mango Pi** (or compatible D1-based board)  
-- **2× IR obstacle/beam-break sensors** (e.g. GPIO_PB0, GPIO_PB1)  
-- **2× TM1637 4-digit 7-segment displays** (CLK/DIO per display)  
+- **2× IR obstacle/beam-break sensors** (GPIO_PB0, GPIO_PB1)  
+- **3× TM1637 4-digit 7-segment displays** — Team 1 scoreboard (CLK/DIO: PG13/PG12), Team 2 scoreboard (PB6/PD17), **Countdown timer** (PB12/PB11)  
 - **2× APA102/DotStar LED strips** (one on hardware SPI pins PD11/PD12, one on bit-banged PC1/PD15)  
-- **Piezo buzzer** (e.g. on PD21)  
-- **Momentary button** (e.g. GPIO_PB4) with internal pull-up  
+- **Piezo buzzer** (e.g. PD21)  
+- **Momentary button** (GPIO_PB4) with internal pull-up  
 
-Exact pin mappings are in `myprogram.c` (sensors, buzzers, display pins, strip pins, button).
+Exact pin mappings are in `myprogram.c`.
 
 ---
 
