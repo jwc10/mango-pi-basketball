@@ -155,4 +155,3 @@ This project is licensed under the MIT License — see [LICENSE](LICENSE) for de
 
 ---
 
-*Strong portfolio project for embedded systems, low-level C, and RISC-V. If you’re hiring for firmware, systems, or embedded roles, this repo is a concise showcase of bare-metal drivers, interrupts, and hardware control.*
